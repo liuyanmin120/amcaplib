@@ -27,6 +27,10 @@
 #include "SampleCGB.h"
 #include "status.h"
 #include "stdafx.h"
+#include "AmCapLib.h"
+#include <map>
+#include <string>
+using namespace std;
 
 //------------------------------------------------------------------------------
 // Macros
@@ -60,6 +64,8 @@ HDEVNOTIFY ghDevNotify=0;
 PUnregisterDeviceNotification gpUnregisterDeviceNotification=0;
 PRegisterDeviceNotification gpRegisterDeviceNotification=0;
 DWORD g_dwGraphRegister=0;
+// add by liuym
+map<wstring, IMoniker*>	gMapVideoMoniker;
 
 struct _capstuff
 {
@@ -229,12 +235,26 @@ void SetAppCaption()
     TCHAR tach[_MAX_PATH + 80];
 
     lstrcpyn(tach, gszAppName, NUMELMS(tach));
-    if(gcap.szCaptureFile[0] != 0)
-    {
-        lstrcat(tach, TEXT(" - "));
-        lstrcat(tach, gcap.szCaptureFile);
-    }
-    SetWindowText(ghwndApp, tach);
+#if 0
+	if (gcap.szCaptureFile[0] != 0)
+	{
+		lstrcat(tach, TEXT(" - "));
+		lstrcat(tach, gcap.szCaptureFile);
+	}
+#else
+	lstrcat(tach, TEXT("Live"));
+#endif
+	SetWindowText(ghwndApp, tach);
+}
+
+BOOL CALLBACK DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID lpBla)
+{
+	if (dwReason == DLL_PROCESS_ATTACH)
+	{
+		ghInstApp = hInst;
+		//StartDllWork(true);		// 自己调用
+	}
+	return TRUE;
 }
 
 //print help
@@ -291,7 +311,7 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     WNDCLASS    cls;
     HDC         hdc;
 
-    const DWORD  dwExStyle = 0;
+	const DWORD  dwExStyle = WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     DbgInitialise(hInst);
@@ -328,12 +348,15 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     GetTextMetrics(hdc, &gtm);
     ReleaseDC(NULL, hdc);
 
+	int posX = GetProfileInt(TEXT("annie"), TEXT("InitPosX"), 600);
+	int posY = GetProfileInt(TEXT("annie"), TEXT("InitPosY"), 500);
+
     ghwndApp=CreateWindowEx(dwExStyle,
                             MAKEINTATOM(ID_APP),    // Class name
                             gszAppName,             // Caption
                             // Style bits
 							ghwndStyle,
-                            CW_USEDEFAULT, 0,       // Position
+							posX, posY,			 // Position
                             320,300,                // Size
                             (HWND)NULL,             // Parent window (no parent)
                             (HMENU)NULL,            // use class menu
@@ -398,8 +421,8 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     int units_per_frame = GetProfileInt(TEXT("annie"), TEXT("FrameRate"), 666667);  // 15fps
     gcap.FrameRate = 10000000. / units_per_frame;
     gcap.FrameRate = (int)(gcap.FrameRate * 100) / 100.;
-	gcap.CaptureWidth  = GetProfileInt(TEXT("annie"), TEXT("CaptureWidth"), 640);
-	gcap.CaptureHeight  = GetProfileInt(TEXT("annie"), TEXT("CaptureHeight"), 360);
+	gcap.CaptureWidth  = GetProfileInt(TEXT("annie"), TEXT("CaptureWidth"), 320);
+	gcap.CaptureHeight  = GetProfileInt(TEXT("annie"), TEXT("CaptureHeight"), 240);
 
     // reasonable default
     if(gcap.FrameRate <= 0.)
@@ -412,8 +435,9 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     // This will start previewing, if desired
     // 
     // Make these the official devices we're using
-
-    ChooseDevices(szVideoDisplayName, szAudioDisplayName);
+	// modify by liuym
+	SelectDevices(szVideoDisplayName, szAudioDisplayName);
+    //ChooseDevices(szVideoDisplayName, szAudioDisplayName);
 
     // Register for device add/remove notifications
     DEV_BROADCAST_DEVICEINTERFACE filterData;
@@ -494,11 +518,12 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
     MSG msg;
 
 	if (!parse_arguments()) return 0;
-
+	
+	ModifyAMCap(true);
     /* Call initialization procedure */
     if(!AppInit(hInst,hPrev,sw))
         return FALSE;
-
+	ModifyAMCap(false);
     /*
     * Polling messages from event queue
     */
@@ -1279,8 +1304,9 @@ BOOL InitCapFilters()
 			pvi->bmiHeader.biHeight = gcap.CaptureHeight;
 
             hr = gcap.pVSC->SetFormat(pmt);
-            if(hr != NOERROR)
-                ErrMsg(TEXT("%x: Cannot set frame rate or resolution for preview"), hr);
+			// modify by liuym
+//             if(hr != NOERROR)
+//                  ErrMsg(TEXT("%x: Cannot set frame rate or resolution for preview"), hr);
         }
     }
 
@@ -2805,6 +2831,13 @@ void ChooseDevices(IMoniker *pmVideo, IMoniker *pmAudio)
     statusUpdateStatus(ghwndStatus, W2T(gcap.wachFriendlyName));
 }
 
+void SelectDevices(TCHAR *szVideo, TCHAR *szAudio)
+{
+	if (gMapVideoMoniker.count(szVideo)) {
+		ChooseDevices(gMapVideoMoniker[szVideo], NULL);
+	}
+}
+
 void ChooseDevices(TCHAR *szVideo, TCHAR *szAudio)
 {
     WCHAR wszVideo[1024],  wszAudio[1024];
@@ -2861,7 +2894,7 @@ void ChooseDevices(TCHAR *szVideo, TCHAR *szAudio)
             goto CleanUp;
     }
 
-    ChooseDevices(pmVideo, pmAudio);
+	ChooseDevices(pmVideo, pmAudio);
 
 CleanUp:
     IMonRelease(pmVideo);
@@ -2965,6 +2998,8 @@ void AddDevicesToMenu()
                 ASSERT(gcap.rgpmVideoMenu[uIndex] == 0);
                 gcap.rgpmVideoMenu[uIndex] = pM;
                 pM->AddRef();
+				// add by liuym
+				gMapVideoMoniker[var.bstrVal] = pM;
             }
             pBag->Release();
         }
@@ -3233,11 +3268,14 @@ LONG PASCAL AppCommand(HWND hwnd, unsigned msg, WPARAM wParam, LPARAM lParam)
             gcap.fWantPreview = !gcap.fWantPreview;
             if(gcap.fWantPreview)
             {
+				ShowWindow(ghwndApp, SW_SHOW);
                 BuildPreviewGraph();
                 StartPreview();
             }
-            else
-                StopPreview();
+			else {
+				StopPreview();
+				ShowWindow(ghwndApp, SW_HIDE);
+			}
             break;
 
         // stop capture
@@ -4490,6 +4528,9 @@ DWORDLONG GetSize(LPCTSTR tach)
 
 void ReadVideoPin()
 {
+	if (gcap.pVSC == NULL) {
+		return;
+	}
 	// read video pin settings
 	HRESULT hr=S_OK;
 	AM_MEDIA_TYPE *pmt;

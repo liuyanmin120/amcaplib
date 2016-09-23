@@ -136,6 +136,9 @@ BOOL statusInit(HANDLE hInst, HANDLE hPrev)
 +--------------------------------------------------------------*/
 int statusGetHeight(void)
 {
+	if (!IsWindowVisible(ghwndStatus)) {
+		return 0;
+	}
     return(gStatusStdHeight);
 }
 
