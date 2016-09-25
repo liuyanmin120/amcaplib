@@ -9,7 +9,7 @@
 #include <windows.h>
 
 
-void SelectDevices(TCHAR *szVideo, TCHAR *szAudio);
+bool SelectDevices(TCHAR *szVideo, TCHAR *szAudio);
 void ModifyAMCap(bool bInit);
 bool StartDllWork(bool bStart);
 

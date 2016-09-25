@@ -66,6 +66,8 @@ PRegisterDeviceNotification gpRegisterDeviceNotification=0;
 DWORD g_dwGraphRegister=0;
 // add by liuym
 map<wstring, IMoniker*>	gMapVideoMoniker;
+bool		gbIsMove = false;
+POINT	gPtMovePre = {0, 0};
 
 struct _capstuff
 {
@@ -436,8 +438,9 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     // 
     // Make these the official devices we're using
 	// modify by liuym
-	SelectDevices(szVideoDisplayName, szAudioDisplayName);
-    //ChooseDevices(szVideoDisplayName, szAudioDisplayName);
+	if (!SelectDevices(szVideoDisplayName, szAudioDisplayName)) {
+		ChooseDevices(szVideoDisplayName, szAudioDisplayName);
+	}
 
     // Register for device add/remove notifications
     DEV_BROADCAST_DEVICEINTERFACE filterData;
@@ -802,9 +805,46 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             break;
 
 		case WM_LBUTTONDBLCLK:
-			FullScreen();
+			//FullScreen(); modify by liuym 全屏切换会有问题
 			break;
 
+		case WM_LBUTTONDOWN:
+			if (!gbIsMove) {
+				SetCapture(hwnd);
+				gbIsMove = true;
+				gPtMovePre = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			}
+			break;
+		case WM_MOUSEMOVE:
+			if (gbIsMove) {
+				POINT curPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				RECT rect;
+				GetWindowRect(hwnd, &rect);
+				int xOff = curPt.x - gPtMovePre.x;
+				int yOff = curPt.y - gPtMovePre.y;
+				SetWindowPos(hwnd, NULL, rect.left + xOff, rect.top + yOff, 0, 0, SWP_NOSIZE);
+			}
+			break;
+		case WM_LBUTTONUP:
+			if (gbIsMove) {
+				gbIsMove = false;
+				ReleaseCapture();
+			}
+			break;
+			/*
+		case WM_NCHITTEST: // 鼠标拖拽功能, 控件上会无效
+		{
+			POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			::ScreenToClient(hwnd, &pt);
+			RECT rcClient;
+			::GetClientRect(hwnd, &rcClient);
+			if (pt.x >= rcClient.left && pt.x < rcClient.right && pt.y > rcClient.top && pt.y < rcClient.bottom) {
+				//::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
+				//return HTCAPTION;
+			}
+		}
+			break;
+			*/
         case WM_PAINT:
             hdc = BeginPaint(hwnd,&ps);
 
@@ -2831,11 +2871,13 @@ void ChooseDevices(IMoniker *pmVideo, IMoniker *pmAudio)
     statusUpdateStatus(ghwndStatus, W2T(gcap.wachFriendlyName));
 }
 
-void SelectDevices(TCHAR *szVideo, TCHAR *szAudio)
+bool SelectDevices(TCHAR *szVideo, TCHAR *szAudio)
 {
 	if (gMapVideoMoniker.count(szVideo)) {
 		ChooseDevices(gMapVideoMoniker[szVideo], NULL);
+		return true;
 	}
+	return false;
 }
 
 void ChooseDevices(TCHAR *szVideo, TCHAR *szAudio)
