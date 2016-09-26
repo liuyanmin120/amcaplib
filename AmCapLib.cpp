@@ -38,6 +38,11 @@ bool StartDllWork(bool bStart) {
 	else {
 		if (GetThreadId(hThreadMain) != 0) {
 			::PostMessage(ghwndApp, WM_CLOSE, 0, 0);
+			DWORD dwRt = ::WaitForSingleObject(hThreadMain, 3000);
+			if (dwRt == WAIT_TIMEOUT) {
+				//PLOG("wait thread exit time out: %lu, %p", timeout, this);
+			}
+			::CloseHandle(hThreadMain);
 			hThreadMain = NULL;
 			return true;
 		}
