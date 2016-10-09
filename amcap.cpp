@@ -2072,7 +2072,8 @@ BOOL StartPreview()
     }
     if(FAILED(hr))
     {
-        ErrMsg(TEXT("Error %x: Cannot run preview graph"), hr);
+        //ErrMsg(TEXT("Error %x: Cannot run preview graph"), hr);
+		ErrMsg(TEXT("Error %x, 设备已经被其它程序占用, 打开设备失败"), hr); // modify by liuym
         return FALSE;
     }
 
