@@ -66,6 +66,10 @@ PRegisterDeviceNotification gpRegisterDeviceNotification=0;
 DWORD g_dwGraphRegister=0;
 // add by liuym
 map<wstring, IMoniker*>	gMapVideoMoniker;
+TCHAR	gCamName[1024] = { 0 };
+TCHAR	gMicName[1024] = { 0 };
+int		gnPox = 800;
+int		gnPoy = 600;
 bool		gbIsMove = false;
 POINT	gPtMovePre = {0, 0};
 
@@ -350,16 +354,13 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     GetTextMetrics(hdc, &gtm);
     ReleaseDC(NULL, hdc);
 
-	int posX = GetProfileInt(TEXT("annie"), TEXT("InitPosX"), 600);
-	int posY = GetProfileInt(TEXT("annie"), TEXT("InitPosY"), 500);
-
     ghwndApp=CreateWindowEx(dwExStyle,
                             MAKEINTATOM(ID_APP),    // Class name
                             gszAppName,             // Caption
                             // Style bits
 							ghwndStyle,
-							posX, posY,			 // Position
-                            320,300,                // Size
+							gnPox, gnPoy,			 // Position
+							320, 240,                // Size
                             (HWND)NULL,             // Parent window (no parent)
                             (HMENU)NULL,            // use class menu
                             hInst,                  // handle to window instance
@@ -396,9 +397,9 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     TCHAR szVideoDisplayName[1024], szAudioDisplayName[1024];
     *szAudioDisplayName = *szVideoDisplayName = 0; // null terminate
 
-    GetProfileString(TEXT("annie"), TEXT("VideoDevice2"), TEXT(""),
+	GetProfileString(TEXT("annie"), TEXT("VideoDevice2"), TEXT(""),
         szVideoDisplayName, NUMELMS(szVideoDisplayName));
-    GetProfileString(TEXT("annie"), TEXT("AudioDevice2"), TEXT(""),
+	GetProfileString(TEXT("annie"), TEXT("AudioDevice2"), TEXT(""),
         szAudioDisplayName, NUMELMS(szAudioDisplayName));
 
     gcap.fDeviceMenuPopulated = false;
@@ -409,7 +410,8 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     gcap.fCapCC    = GetProfileInt(TEXT("annie"), TEXT("CaptureCC"), FALSE);
 
     // do we want preview?
-    gcap.fWantPreview = GetProfileInt(TEXT("annie"), TEXT("WantPreview"), FALSE);
+	//gcap.fWantPreview = GetProfileInt(TEXT("annie"), TEXT("WantPreview"), FALSE);
+	gcap.fWantPreview = TRUE; // modify by liuym
 
     // which stream should be the master? NONE(-1) means nothing special happens
     // AUDIO(1) means the video frame rate is changed before written out to keep
@@ -425,6 +427,8 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     gcap.FrameRate = (int)(gcap.FrameRate * 100) / 100.;
 	gcap.CaptureWidth  = GetProfileInt(TEXT("annie"), TEXT("CaptureWidth"), 320);
 	gcap.CaptureHeight  = GetProfileInt(TEXT("annie"), TEXT("CaptureHeight"), 240);
+	gcap.CaptureWidth = 320;
+	gcap.CaptureHeight = 240;
 
     // reasonable default
     if(gcap.FrameRate <= 0.)
@@ -438,8 +442,8 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     // 
     // Make these the official devices we're using
 	// modify by liuym
-	if (!SelectDevices(szVideoDisplayName, szAudioDisplayName)) {
-		ChooseDevices(szVideoDisplayName, szAudioDisplayName);
+	if (!SelectDevices(gCamName, gMicName)) {
+		ChooseDevices(gCamName, gMicName);
 	}
 
     // Register for device add/remove notifications
@@ -581,7 +585,12 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     switch(msg)
     {
-        case WM_CREATE:
+		case WM_CREATE:
+		{
+			LONG styleValue = ::GetWindowLong(hwnd, GWL_STYLE);
+			styleValue &= ~WS_CAPTION;
+			::SetWindowLong(hwnd, GWL_STYLE, styleValue);
+		}
             break;
 
         case WM_COMMAND:
@@ -1034,13 +1043,15 @@ void ResizeWindow(int w, int h)
     RECT rcW, rcC;
     int xExtra, yExtra;
     int cyBorder = GetSystemMetrics(SM_CYBORDER);
+	int caption = GetSystemMetrics(SM_CYCAPTION);
 
     gnRecurse++;
 
     GetWindowRect(ghwndApp, &rcW);
     GetClientRect(ghwndApp, &rcC);
     xExtra = rcW.right - rcW.left - rcC.right;
-    yExtra = rcW.bottom - rcW.top - rcC.bottom + cyBorder + statusGetHeight();
+	yExtra = rcW.bottom - rcW.top - rcC.bottom + cyBorder * 2 + statusGetHeight() - caption;
+
 
     rcC.right = w;
     rcC.bottom = h;
@@ -1048,6 +1059,7 @@ void ResizeWindow(int w, int h)
     SetWindowPos(ghwndApp, NULL, 0, 0, rcC.right + xExtra,
         rcC.bottom + yExtra, SWP_NOZORDER | SWP_NOMOVE);
 
+	//GetClientRect(ghwndApp, &rcC);
     // we may need to recurse once.  But more than that means the window cannot
     // be made the size we want, trying will just stack fault.
     //

@@ -14,7 +14,7 @@ void ModifyAMCap(bool bInit);
 bool StartDllWork(bool bStart);
 
 extern "C" {
-	AMCAP_EXPORT bool DoCommand(int cmd);
+	AMCAP_EXPORT bool DoCommand(int cmd, void* pAMCmdPar);
 	
 
 }

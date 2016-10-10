@@ -12,6 +12,11 @@ extern HINSTANCE ghInstApp;
 extern DWORD ghwndStyle;
 extern HWND ghwndApp, ghwndStatus;
 extern map<wstring, IMoniker*>	gMapVideoMoniker;
+extern TCHAR	gCamName[1024];
+extern TCHAR	gMicName[1024];
+extern int gnPox;
+extern int gnPoy;
+
 
 unsigned long __stdcall AMCapMainThread(void*)
 {
@@ -54,7 +59,7 @@ void ModifyAMCap(bool bInit)
 {
 	if (bInit) {
 		//ghwndStyle = (WS_OVERLAPPED | /*WS_CAPTION | WS_SYSMENU |*/ WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE);
-		ghwndStyle = (WS_POPUP | /*WS_CAPTION |*/ WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		ghwndStyle = (WS_OVERLAPPED | /*WS_CAPTION |*/ WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 	}
 	else {
 		ShowWindow(ghwndStatus, SW_HIDE);
@@ -63,16 +68,30 @@ void ModifyAMCap(bool bInit)
 }
 
 /******************************½Ó¿Ú****************************/
-enum CmdType {
+enum AMCmdType {
 	cmd_startApp = 1,
 	cmd_exitApp,
 	cmd_startPreview,
 	cmd_stopPreview,
 	cmd_isPreview,
 };
-bool DoCommand(int cmd)
+
+struct AMCmdPar
 {
-	CmdType cmdtype = (CmdType)cmd;
+	TCHAR camName[1024];
+	TCHAR micName[1024];
+	int nPar0;
+	int nPar1;
+};
+
+bool DoCommand(int cmd, void* pAMCmdPar)
+{
+	AMCmdType cmdtype = (AMCmdType)cmd;
+	AMCmdPar* pPar = (AMCmdPar*)pAMCmdPar;
+	wcscpy(gCamName, pPar->camName);
+	wcscpy(gMicName, pPar->micName);
+	gnPox = pPar->nPar0;
+	gnPoy = pPar->nPar1;
 
 	bool bReturn = false;
 	switch (cmdtype)
@@ -85,13 +104,7 @@ bool DoCommand(int cmd)
 		break;
 	case cmd_startPreview:
 		if (ghwndApp && !IsWindowVisible(ghwndApp)) {
-			TCHAR szVideoDisplayName[1024], szAudioDisplayName[1024];
-			*szAudioDisplayName = *szVideoDisplayName = 0; // null terminate
-			GetProfileString(TEXT("annie"), TEXT("VideoDevice2"), TEXT(""),
-				szVideoDisplayName, NUMELMS(szVideoDisplayName));
-			GetProfileString(TEXT("annie"), TEXT("AudioDevice2"), TEXT(""),
-				szAudioDisplayName, NUMELMS(szAudioDisplayName));
-			SelectDevices(szVideoDisplayName, szAudioDisplayName);
+			SelectDevices(gCamName, gMicName);
 			PostMessage(ghwndApp, WM_COMMAND, MENU_PREVIEW, 0);
 		}
 		break;
