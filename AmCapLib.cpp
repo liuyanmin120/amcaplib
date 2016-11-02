@@ -26,7 +26,7 @@ unsigned long __stdcall AMCapMainThread(void*)
 
 bool StartDllWork(bool bStart) {
 	if (bStart) {
-		if (GetThreadId(hThreadMain) != 0) {	// ±‹√‚÷ÿ∏¥∆Ù∂Ø
+		if (hThreadMain) {	// ±‹√‚÷ÿ∏¥∆Ù∂Ø
 			return true;
 		}
 		hThreadMain = ::CreateThread(NULL, 0, AMCapMainThread, NULL, 0, NULL);
@@ -41,7 +41,7 @@ bool StartDllWork(bool bStart) {
 		return hThreadMain != 0;
 	}
 	else {
-		if (GetThreadId(hThreadMain) != 0) {
+		if (hThreadMain) {
 			::PostMessage(ghwndApp, WM_CLOSE, 0, 0);
 			DWORD dwRt = ::WaitForSingleObject(hThreadMain, 3000);
 			if (dwRt == WAIT_TIMEOUT) {

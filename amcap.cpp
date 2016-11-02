@@ -523,8 +523,8 @@ void IMonRelease(IMoniker *&pm)
 int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 {
     MSG msg;
-
-	if (!parse_arguments()) return 0;
+	// hInst启动参数包括classId，解决pc客户端预览失败问题
+	//if (!parse_arguments()) return 0;
 	
 	ModifyAMCap(true);
     /* Call initialization procedure */
