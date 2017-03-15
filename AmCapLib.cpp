@@ -10,6 +10,7 @@ HANDLE	hThreadMain = 0;
 
 extern HINSTANCE ghInstApp;
 extern DWORD ghwndStyle;
+extern HMENU ghmenuApp;
 extern HWND ghwndApp, ghwndStatus;
 extern map<wstring, IMoniker*>	gMapVideoMoniker;
 extern TCHAR	gCamName[1024];
@@ -63,6 +64,7 @@ void ModifyAMCap(bool bInit)
 	}
 	else {
 		ShowWindow(ghwndStatus, SW_HIDE);
+		ghmenuApp = GetMenu(ghwndApp);
 		SetMenu(ghwndApp, NULL);
 	}
 }

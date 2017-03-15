@@ -793,6 +793,16 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         // ESC will stop capture
         case WM_KEYDOWN:
+			if (wParam == 'M' || wParam == 'm') {
+				if ((GetKeyState(VK_CONTROL) < 0 && GetKeyState(VK_SHIFT) < 0)) {
+					if (GetMenu(ghwndApp)) {
+						SetMenu(ghwndApp, NULL);
+					}
+					else {
+						SetMenu(ghwndApp, ghmenuApp);
+					}
+				}
+			}
             if((GetAsyncKeyState(VK_ESCAPE) & 0x01) && gcap.fCapturing)
             {
                 StopCapture();
@@ -809,7 +819,7 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				case VK_ESCAPE:
 					FullScreen();
-					break;
+					break; 
 			}
             break;
 
@@ -1884,7 +1894,7 @@ BOOL BuildPreviewGraph()
 {
     int cy, cyBorder;
     HRESULT hr;
-    AM_MEDIA_TYPE *pmt;
+    //AM_MEDIA_TYPE *pmt;
 
     // we have one already
     if(gcap.fPreviewGraphBuilt)
