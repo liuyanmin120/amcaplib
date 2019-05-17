@@ -3400,17 +3400,18 @@ LONG PASCAL AppCommand(HWND hwnd, unsigned msg, WPARAM wParam, LPARAM lParam)
             gcap.fWantPreview = !gcap.fWantPreview;
 			if (gcap.fWantPreview)
 			{
-				bool bShow = false;
 				if (g_AppParam.bSetPos) {
 					g_AppParam.bSetPos = false;
 					int nWidth = g_AppParam.rStartRect.right - g_AppParam.rStartRect.left;
 					int nHeight = g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top;
-					if (nWidth && nHeight) {
-						bShow = true;
+					if (nWidth > 0 && nHeight > 0) {
 						::SetWindowPos(ghwndApp, NULL, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW);
 					}
+					else {
+						::SetWindowPos(ghwndApp, NULL, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW | SWP_NOSIZE);
+					}
 				}
-				if (!bShow) {
+				else {
 					ShowWindow(ghwndApp, SW_SHOW);
 				}
                 BuildPreviewGraph();
