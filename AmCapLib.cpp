@@ -17,7 +17,7 @@ extern TCHAR	gCamName[1024];
 extern TCHAR	gMicName[1024];
 extern int gnPox;
 extern int gnPoy;
-
+//
 
 unsigned long __stdcall AMCapMainThread(void*)
 {
@@ -76,14 +76,20 @@ enum AMCmdType {
 	cmd_startPreview,
 	cmd_stopPreview,
 	cmd_isPreview,
+	cmd_setPos,
+	cmd_setInRect,
 };
+// 1去白条
+// 初始化时设置（xy）宽高，设置有效区域（拖拽调整大小保证在区域）
 
 struct AMCmdPar
 {
 	TCHAR camName[1024];
 	TCHAR micName[1024];
-	int nPar0;
-	int nPar1;
+	int nPosx;
+	int nPosy;
+	int nWidth;
+	int nHeight;
 };
 
 bool DoCommand(int cmd, void* pAMCmdPar)
@@ -92,8 +98,6 @@ bool DoCommand(int cmd, void* pAMCmdPar)
 	AMCmdPar* pPar = (AMCmdPar*)pAMCmdPar;
 	wcscpy(gCamName, pPar->camName);
 	wcscpy(gMicName, pPar->micName);
-	gnPox = pPar->nPar0;
-	gnPoy = pPar->nPar1;
 
 	bool bReturn = false;
 	switch (cmdtype)
@@ -118,6 +122,17 @@ bool DoCommand(int cmd, void* pAMCmdPar)
 	case cmd_isPreview:
 		bReturn = IsWindowVisible(ghwndApp);
 		break;
+	case cmd_setPos:
+	{
+		g_AppParam.bSetPos = true;
+		g_AppParam.rStartRect = { pPar->nPosx, pPar->nPosy, pPar->nPosx+pPar->nWidth, pPar->nPosy+pPar->nHeight };
+		break;
+	}
+	case cmd_setInRect:
+	{
+		g_AppParam.rLimitRect = { pPar->nPosx, pPar->nPosy, pPar->nPosx+pPar->nWidth,pPar->nPosy+pPar->nHeight };
+		break;
+	}
 	default:
 		break;
 	}

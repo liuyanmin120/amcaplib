@@ -18,3 +18,37 @@ extern "C" {
 	
 
 }
+
+enum DIRECTION {
+	UPPER = 0,
+	LOWER = 1,
+	LEFT,
+	RIGHT,
+	LEFTUPPER,
+	LEFTLOWER,
+	RIGHTLOWER,
+	RIGHTUPPER,
+	NONE
+};
+
+typedef struct _AppParam
+{
+	_AppParam()
+	{
+		rLimitRect = { -MAXINT, -MAXINT, MAXINT, MAXINT };
+		bSetPos = false;
+		rStartRect = { 300,300,320,240 };
+		eDirection = NONE;
+		szMinSize = { 32,32 };
+		nBorder = 4;
+		bMouseIsPressed = false;
+	}
+	RECT  rLimitRect;
+	bool  bSetPos;
+	RECT  rStartRect;
+	DIRECTION eDirection;
+	SIZE   szMinSize;
+	bool	  bMouseIsPressed;
+	int		  nBorder;
+}AppParam;
+extern AppParam g_AppParam;

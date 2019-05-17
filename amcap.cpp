@@ -73,6 +73,14 @@ int		gnPoy = 600;
 bool		gbIsMove = false;
 POINT	gPtMovePre = {0, 0};
 
+/************ extend by wyb ***************/ 
+
+AppParam g_AppParam;
+
+void setMouseCursor(const POINT &pt);
+void handleStrech(const POINT &pt);
+/*************** end ******************/
+
 struct _capstuff
 {
     TCHAR szCaptureFile[_MAX_PATH];
@@ -359,13 +367,18 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
                             gszAppName,             // Caption
                             // Style bits
 							ghwndStyle,
-							gnPox, gnPoy,			 // Position
-							320, 240,                // Size
+							g_AppParam.rStartRect.left, g_AppParam.rStartRect.top,			 // Position
+							g_AppParam.rStartRect.right- g_AppParam.rStartRect.left, 
+							g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top,                // Size
                             (HWND)NULL,             // Parent window (no parent)
                             (HMENU)NULL,            // use class menu
                             hInst,                  // handle to window instance
                             (LPSTR)NULL             // no params to pass on
                             );
+
+	LONG_PTR Style = ::GetWindowLongPtr(ghwndApp, GWL_STYLE);
+	Style = Style &~WS_CAPTION &~WS_SYSMENU &~WS_SIZEBOX;
+	::SetWindowLongPtr(ghwndApp, GWL_STYLE, Style);
 
     // create the status bar
     statusInit(hInst, hPrev);
@@ -590,6 +603,7 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			LONG styleValue = ::GetWindowLong(hwnd, GWL_STYLE);
 			styleValue &= ~WS_CAPTION;
 			::SetWindowLong(hwnd, GWL_STYLE, styleValue);
+
 		}
             break;
 
@@ -828,25 +842,77 @@ LONG WINAPI  AppWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WM_LBUTTONDOWN:
-			if (!gbIsMove) {
+			if (!g_AppParam.bMouseIsPressed) {
 				SetCapture(hwnd);
-				gbIsMove = true;
+				g_AppParam.bMouseIsPressed = true;
 				gPtMovePre = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+	
+				// modify a bug, the cursor will disappear
+				POINT curPt = gPtMovePre;
+				::ClientToScreen(ghwndApp, &curPt);
+				setMouseCursor(curPt);
+				//SetClassLong(ghwndApp, GCL_HCURSOR, (long)hcur);	// 设置窗口类的鼠标样式
 			}
 			break;
 		case WM_MOUSEMOVE:
-			if (gbIsMove) {
-				POINT curPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				RECT rect;
-				GetWindowRect(hwnd, &rect);
-				int xOff = curPt.x - gPtMovePre.x;
-				int yOff = curPt.y - gPtMovePre.y;
-				SetWindowPos(hwnd, NULL, rect.left + xOff, rect.top + yOff, 0, 0, SWP_NOSIZE);
+		{
+			POINT curPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			
+			if (g_AppParam.bMouseIsPressed) {
+				//POINT curPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				//RECT rect;
+				//GetWindowRect(hwnd, &rect);
+				//int xOff = curPt.x - gPtMovePre.x;
+				//int yOff = curPt.y - gPtMovePre.y;
+				//SetWindowPos(hwnd, NULL, rect.left + xOff, rect.top + yOff, 0, 0, SWP_NOSIZE);
+				if (g_AppParam.eDirection == NONE) 
+				{
+					RECT rect;
+					GetWindowRect(hwnd, &rect);
+					int nWidth = rect.right - rect.left;
+					int nHeight = rect.bottom - rect.top;
+
+					int xPos = rect.left + curPt.x - gPtMovePre.x;
+					int yPos = rect.top + curPt.y - gPtMovePre.y;
+					if (xPos < g_AppParam.rLimitRect.left)
+					{
+						xPos = g_AppParam.rLimitRect.left;
+					}
+
+					if (xPos > g_AppParam.rLimitRect.right - nWidth)
+					{
+						xPos = g_AppParam.rLimitRect.right - nWidth;
+					}
+
+					if (yPos < g_AppParam.rLimitRect.top)
+					{
+						yPos = g_AppParam.rLimitRect.top;
+					}
+					if (yPos > g_AppParam.rLimitRect.bottom - nHeight)
+					{
+						yPos = g_AppParam.rLimitRect.bottom - nHeight;
+					}
+					SetWindowPos(hwnd, NULL, xPos, yPos, 0, 0, SWP_NOSIZE);
+				}
+				else 
+				{
+					::ClientToScreen(ghwndApp, &curPt);
+					handleStrech(curPt);
+				}
+				
+	
 			}
+			else 
+			{
+				::ClientToScreen(ghwndApp,&curPt);
+				setMouseCursor(curPt);
+			}
+		}
 			break;
 		case WM_LBUTTONUP:
-			if (gbIsMove) {
-				gbIsMove = false;
+			if (g_AppParam.bMouseIsPressed) {
+				g_AppParam.bMouseIsPressed = false;
+				g_AppParam.eDirection = NONE;
 				ReleaseCapture();
 			}
 			break;
@@ -1063,21 +1129,21 @@ void ResizeWindow(int w, int h)
 	yExtra = rcW.bottom - rcW.top - rcC.bottom + cyBorder * 2 + statusGetHeight() - caption;
 
 
-    rcC.right = w;
-    rcC.bottom = h;
+    //rcC.right = w;
+    //rcC.bottom = h;
 	
-    SetWindowPos(ghwndApp, NULL, 0, 0, rcC.right + xExtra,
-        rcC.bottom + yExtra, SWP_NOZORDER | SWP_NOMOVE);
+    //SetWindowPos(ghwndApp, NULL, 0, 0, rcC.right + xExtra,
+    //    rcC.bottom + yExtra, SWP_NOZORDER | SWP_NOMOVE);
 
 	//GetClientRect(ghwndApp, &rcC);
     // we may need to recurse once.  But more than that means the window cannot
     // be made the size we want, trying will just stack fault.
     //
-    if(gnRecurse == 1 && ((rcC.right + xExtra != rcW.right - rcW.left && w > GetSystemMetrics(SM_CXMIN)) ||
-        (rcC.bottom + yExtra != rcW.bottom - rcW.top)))
-        ResizeWindow(w,h);
+    //if(gnRecurse == 1 && ((rcC.right + xExtra != rcW.right - rcW.left && w > GetSystemMetrics(SM_CXMIN)) ||
+    //    (rcC.bottom + yExtra != rcW.bottom - rcW.top)))
+    //    ResizeWindow(w,h);
 
-    gnRecurse--;
+    //gnRecurse--;
 
 	ResizeChild(rcC.right + xExtra, rcC.bottom + yExtra);
 }
@@ -1379,8 +1445,9 @@ BOOL InitCapFilters()
         if(pmt->formattype == FORMAT_VideoInfo)
         {
             // resize our window to the default capture size
-            ResizeWindow(HEADER(pmt->pbFormat)->biWidth,
-                         ABS(HEADER(pmt->pbFormat)->biHeight));
+           //ResizeWindow(HEADER(pmt->pbFormat)->biWidth,
+           //              ABS(HEADER(pmt->pbFormat)->biHeight));
+			//ResizeWindow(g_AppParam.rStartRect.right - g_AppParam.rStartRect.left, g_AppParam.rStartRect.bottom- g_AppParam.rStartRect.top);
         }
         if(pmt->majortype != MEDIATYPE_Video)
         {
@@ -1806,7 +1873,7 @@ BOOL BuildCaptureGraph()
             RECT rc;
             gcap.pVW->put_Owner((OAHWND)ghwndApp);    // We own the window now
             gcap.pVW->put_WindowStyle(WS_CHILD);    // you are now a child
-
+			gcap.pVW->HideCursor(OATRUE);
             // give the preview window all our space but where the status bar is
             GetClientRect(ghwndApp, &rc);
             cyBorder = GetSystemMetrics(SM_CYBORDER);
@@ -2030,7 +2097,7 @@ BOOL BuildPreviewGraph()
         gcap.pVW->put_Owner((OAHWND)ghwndApp);    // We own the window now
         gcap.pVW->put_WindowStyle(WS_CHILD);    // you are now a child
 		gcap.pVW->put_MessageDrain((OAHWND)ghwndApp);
-
+		gcap.pVW->HideCursor(OATRUE);
         // give the preview window all our space but where the status bar is
         GetClientRect(ghwndApp, &rc);
         cyBorder = GetSystemMetrics(SM_CYBORDER);
@@ -2038,7 +2105,7 @@ BOOL BuildPreviewGraph()
         rc.bottom -= cy;
 
         ResizeChild(rc.right, rc.bottom);
-        gcap.pVW->put_Visible(OATRUE);
+        gcap.pVW->put_Visible(OAFALSE);
     }
 
     // make sure we process events while we're previewing!
@@ -3331,9 +3398,21 @@ LONG PASCAL AppCommand(HWND hwnd, unsigned msg, WPARAM wParam, LPARAM lParam)
         // 
         case MENU_PREVIEW:
             gcap.fWantPreview = !gcap.fWantPreview;
-            if(gcap.fWantPreview)
-            {
-				ShowWindow(ghwndApp, SW_SHOW);
+			if (gcap.fWantPreview)
+			{
+				bool bShow = false;
+				if (g_AppParam.bSetPos) {
+					g_AppParam.bSetPos = false;
+					int nWidth = g_AppParam.rStartRect.right - g_AppParam.rStartRect.left;
+					int nHeight = g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top;
+					if (nWidth && nHeight) {
+						bShow = true;
+						::SetWindowPos(ghwndApp, NULL, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW);
+					}
+				}
+				if (!bShow) {
+					ShowWindow(ghwndApp, SW_SHOW);
+				}
                 BuildPreviewGraph();
                 StartPreview();
             }
@@ -4765,3 +4844,174 @@ void RemoveGraphFromRot(DWORD pdwRegister)
     }
 }
 
+/****************** extend **********************/
+#define HITTEST(rect,cursor,dir) hitTest(rect, cursor,dir);\
+if(bHited)\
+{\
+	return;\
+}
+
+void setMouseCursor(const POINT &pt) 
+{
+	RECT rW;
+	::GetWindowRect(ghwndApp,&rW);
+	
+	int nBorder = g_AppParam.nBorder;
+	RECT rLeftUpperArea = { rW.left,rW.top,rW.left+ nBorder,rW.top+nBorder };
+	RECT rUpperArea = { rW.left + nBorder,rW.top,rW.right-nBorder,rW.top +nBorder };
+	RECT rRightUpperArea = { rW.right - nBorder,rW.top,rW.right,rW.top + nBorder };
+
+	RECT rLeftArea = { rW.left ,rW.top + nBorder,rW.left+ nBorder,rW.bottom- nBorder };
+	RECT rRightArea = { rW.right- nBorder,rW.top + nBorder,rW.right ,rW.bottom - nBorder };
+
+	RECT rLeftLowerArea = { rW.left ,rW.bottom - nBorder,rW.left + nBorder,rW.bottom};
+	RECT rLowerArea = { rW.left + nBorder,rW.bottom - nBorder,rW.right - nBorder,rW.bottom };
+	RECT rRightLowerArea = { rW.right - nBorder,rW.bottom - nBorder,rW.right ,rW.bottom };
+
+	bool bHited = false;
+	auto hitTest = [&](const RECT &r, LPCWSTR cursor,DIRECTION dir)
+	{
+		if (::PtInRect(&r, pt))
+		{
+			HCURSOR hcur = LoadCursor(NULL, cursor);
+			::SetCursor(hcur);
+			g_AppParam.eDirection = dir;
+			bHited = true;
+		}
+	};
+	HITTEST(rLeftUpperArea, IDC_SIZENWSE, LEFTUPPER);
+	HITTEST(rUpperArea, IDC_SIZENS, UPPER);
+	HITTEST(rRightUpperArea, IDC_SIZENESW, RIGHTUPPER);
+
+	HITTEST(rLeftArea, IDC_SIZEWE, LEFT);
+	HITTEST(rRightArea, IDC_SIZEWE, RIGHT);
+
+	HITTEST(rLeftLowerArea, IDC_SIZENESW, LEFTLOWER);
+	HITTEST(rLowerArea, IDC_SIZENS, LOWER);
+	HITTEST(rRightLowerArea, IDC_SIZENWSE, RIGHTLOWER);
+
+	if (bHited == false) 
+	{
+		HCURSOR hcur = LoadCursor(NULL, IDC_SIZEALL);
+		::SetCursor(hcur);
+		g_AppParam.eDirection = NONE;
+	}
+
+}
+#include<algorithm>
+void handleStrech(const POINT &pt)
+{
+	RECT rect;
+	GetWindowRect(ghwndApp, &rect);
+	LONG nMoveX = pt.x;
+	LONG nMoveY = pt.y;
+	nMoveX = max(nMoveX, g_AppParam.rLimitRect.left);
+	nMoveX = min(nMoveX, g_AppParam.rLimitRect.right);
+
+	nMoveY = max(nMoveY, g_AppParam.rLimitRect.top);
+	nMoveY = min(nMoveY, g_AppParam.rLimitRect.bottom);
+
+	LONG nLeft = rect.left;
+	LONG nTop = rect.top;
+	LONG nBottom = rect.bottom;
+	LONG nRight = rect.right;
+
+	LONG nMinWidth = g_AppParam.szMinSize.cx;
+	LONG nMinHeight = g_AppParam.szMinSize.cy;
+	auto adjustLeft = [&]() 
+	{
+		if (nRight - nMoveX <= nMinWidth)
+		{
+			nLeft = nRight - nMinWidth ;
+		}
+		else 
+		{
+			nLeft = nMoveX;
+		}
+	};
+
+	auto adjustTop = [&]()
+	{
+		if (nBottom - nMoveY <= nMinHeight)
+		{
+			nTop = nBottom - nMinHeight;
+		}
+		else 
+		{
+			nTop = nMoveY;
+		}
+	};
+
+	auto adjustBottom = [&]()
+	{
+		if (nMoveY - nTop <= nMinHeight)
+		{
+			nBottom = nTop + nMinHeight;
+		}else
+		{
+			nBottom = nMoveY;
+		}
+	};
+
+	auto adjustRight = [&]()
+	{
+		if (nMoveX - nLeft <= nMinWidth) 
+		{
+			nRight = nLeft + nMinWidth;
+		}
+		else 
+		{
+			nRight = nMoveX;
+		}
+	};
+
+	switch (g_AppParam.eDirection) 
+	{
+	case LEFTUPPER :
+	{
+		adjustLeft();
+		adjustTop();
+		break;
+	}
+	case UPPER: 
+	{
+		adjustTop();
+		break;
+	}
+	case RIGHTUPPER:
+	{
+		adjustRight();
+		adjustTop();
+		break;
+	}
+	case LEFT:
+	{
+		adjustLeft();
+		break;
+	}
+	case RIGHT:
+	{
+		adjustRight();
+		break;
+	}
+	case LEFTLOWER:
+	{
+		adjustBottom();
+		adjustLeft();
+		break;
+	}
+	case LOWER:
+	{
+		adjustBottom();
+		break;
+	}
+	case RIGHTLOWER:
+	{
+		adjustRight();
+		adjustBottom();
+		break;
+	}
+	};
+
+	::SetWindowPos(ghwndApp, NULL, nLeft, nTop, nRight-nLeft, nBottom-nTop, SWP_SHOWWINDOW);
+}
