@@ -120,7 +120,9 @@ bool DoCommand(int cmd, void* pAMCmdPar)
 		}
 		break;
 	case cmd_isPreview:
-		bReturn = IsWindowVisible(ghwndApp);
+		if (ghwndApp) {
+			bReturn = IsWindowVisible(ghwndApp);
+		}
 		break;
 	case cmd_setPos:
 	{
