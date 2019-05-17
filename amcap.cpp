@@ -361,7 +361,7 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     SelectObject(hdc, ghfontApp);
     GetTextMetrics(hdc, &gtm);
     ReleaseDC(NULL, hdc);
-
+	g_AppParam.bSetPos = false;
     ghwndApp=CreateWindowEx(dwExStyle,
                             MAKEINTATOM(ID_APP),    // Class name
                             gszAppName,             // Caption
