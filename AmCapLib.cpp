@@ -86,10 +86,10 @@ struct AMCmdPar
 {
 	TCHAR camName[1024];
 	TCHAR micName[1024];
-	int nPosx;
-	int nPosy;
-	int nWidth;
-	int nHeight;
+	int left;
+	int top;
+	int right;
+	int bottom;
 };
 
 bool DoCommand(int cmd, void* pAMCmdPar)
@@ -125,12 +125,12 @@ bool DoCommand(int cmd, void* pAMCmdPar)
 	case cmd_setPos:
 	{
 		g_AppParam.bSetPos = true;
-		g_AppParam.rStartRect = { pPar->nPosx, pPar->nPosy, pPar->nPosx+pPar->nWidth, pPar->nPosy+pPar->nHeight };
+		g_AppParam.rStartRect = { pPar->left, pPar->top, pPar->right, pPar->bottom };
 		break;
 	}
 	case cmd_setInRect:
 	{
-		g_AppParam.rLimitRect = { pPar->nPosx, pPar->nPosy, pPar->nPosx+pPar->nWidth,pPar->nPosy+pPar->nHeight };
+		g_AppParam.rLimitRect = { pPar->left, pPar->top, pPar->right, pPar->bottom };
 		break;
 	}
 	default:
