@@ -42,7 +42,9 @@ typedef struct _AppParam
 		szMinSize = { 32,32 };
 		nBorder = 4;
 		bMouseIsPressed = false;
+		hParentWnd = NULL;
 	}
+	HWND	hParentWnd;
 	RECT  rLimitRect;
 	bool  bSetPos;
 	RECT  rStartRect;

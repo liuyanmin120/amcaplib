@@ -362,19 +362,36 @@ BOOL AppInit(HINSTANCE hInst, HINSTANCE hPrev, int sw)
     GetTextMetrics(hdc, &gtm);
     ReleaseDC(NULL, hdc);
 	g_AppParam.bSetPos = false;
-    ghwndApp=CreateWindowEx(dwExStyle,
-                            MAKEINTATOM(ID_APP),    // Class name
-                            gszAppName,             // Caption
-                            // Style bits
-							ghwndStyle,
-							g_AppParam.rStartRect.left, g_AppParam.rStartRect.top,			 // Position
-							g_AppParam.rStartRect.right- g_AppParam.rStartRect.left, 
-							g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top,                // Size
-                            (HWND)NULL,             // Parent window (no parent)
-                            (HMENU)NULL,            // use class menu
-                            hInst,                  // handle to window instance
-                            (LPSTR)NULL             // no params to pass on
-                            );
+	if (g_AppParam.hParentWnd) {
+		ghwndApp = CreateWindowEx(WS_EX_TOOLWINDOW,
+			MAKEINTATOM(ID_APP),    // Class name
+			gszAppName,             // Caption
+			// Style bits
+			WS_CHILD | WS_POPUP,
+			g_AppParam.rStartRect.left, g_AppParam.rStartRect.top,			 // Position
+			g_AppParam.rStartRect.right - g_AppParam.rStartRect.left,
+			g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top,                // Size
+			(HWND)g_AppParam.hParentWnd, // Parent window
+			(HMENU)NULL,            // use class menu
+			hInst,                  // handle to window instance
+			(LPSTR)NULL             // no params to pass on
+			);
+	}
+	else {
+		ghwndApp = CreateWindowEx(dwExStyle,
+			MAKEINTATOM(ID_APP),    // Class name
+			gszAppName,             // Caption
+			// Style bits
+			ghwndStyle,
+			g_AppParam.rStartRect.left, g_AppParam.rStartRect.top,			 // Position
+			g_AppParam.rStartRect.right - g_AppParam.rStartRect.left,
+			g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top,                // Size
+			(HWND)NULL,             // Parent window (no parent)
+			(HMENU)NULL,            // use class menu
+			hInst,                  // handle to window instance
+			(LPSTR)NULL             // no params to pass on
+			);
+	}
 
 	LONG_PTR Style = ::GetWindowLongPtr(ghwndApp, GWL_STYLE);
 	Style = Style &~WS_CAPTION &~WS_SYSMENU &~WS_SIZEBOX;

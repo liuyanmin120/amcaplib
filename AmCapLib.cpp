@@ -90,6 +90,7 @@ struct AMCmdPar
 	int top;
 	int right;
 	int bottom;
+	HWND hParent;
 };
 
 bool DoCommand(int cmd, void* pAMCmdPar)
@@ -98,6 +99,7 @@ bool DoCommand(int cmd, void* pAMCmdPar)
 	AMCmdPar* pPar = (AMCmdPar*)pAMCmdPar;
 	wcscpy(gCamName, pPar->camName);
 	wcscpy(gMicName, pPar->micName);
+	g_AppParam.hParentWnd = pPar->hParent;
 
 	bool bReturn = false;
 	switch (cmdtype)
