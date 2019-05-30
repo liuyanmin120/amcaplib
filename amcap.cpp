@@ -3422,14 +3422,17 @@ LONG PASCAL AppCommand(HWND hwnd, unsigned msg, WPARAM wParam, LPARAM lParam)
 					int nWidth = g_AppParam.rStartRect.right - g_AppParam.rStartRect.left;
 					int nHeight = g_AppParam.rStartRect.bottom - g_AppParam.rStartRect.top;
 					if (nWidth > 0 && nHeight > 0) {
-						::SetWindowPos(ghwndApp, NULL, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW);
+						::SetWindowPos(ghwndApp, HWND_TOPMOST, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW);
+						BringWindowToTop(ghwndApp);
 					}
 					else {
-						::SetWindowPos(ghwndApp, NULL, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW | SWP_NOSIZE);
+						::SetWindowPos(ghwndApp, HWND_TOPMOST, g_AppParam.rStartRect.left, g_AppParam.rStartRect.top, nWidth, nHeight, SWP_SHOWWINDOW | SWP_NOSIZE);
+						BringWindowToTop(ghwndApp);
 					}
 				}
 				else {
-					ShowWindow(ghwndApp, SW_SHOW);
+					::SetWindowPos(ghwndApp, HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+					BringWindowToTop(ghwndApp);
 				}
                 BuildPreviewGraph();
                 StartPreview();
