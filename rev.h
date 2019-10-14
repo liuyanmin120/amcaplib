@@ -1,0 +1,2 @@
+#define VER "e02f71729342b141c488e7479e7fb0b0b0623576"
+#define VER_DATE ""
